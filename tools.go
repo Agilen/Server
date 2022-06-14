@@ -9,12 +9,6 @@ import (
 	"github.com/google/uuid"
 )
 
-func (s *Server) DeletePort(port string) {
-	if val, ok := s.PortsStore[port]; ok && val {
-		delete(s.PortsStore, port)
-	}
-}
-
 func InitPortsMap() map[string]bool {
 	m := make(map[string]bool)
 	for i := 10000; i < 20000; i++ {

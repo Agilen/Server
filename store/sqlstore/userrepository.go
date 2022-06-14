@@ -2,6 +2,7 @@ package sqlstore
 
 import (
 	"errors"
+	"fmt"
 
 	"github.com/Agilen/Server/model"
 	"github.com/google/uuid"
@@ -36,6 +37,11 @@ func (r *UserRepository) CheckUser(u *model.User) error {
 	if err := r.store.db.Where(u).Find(&u).Error; err != nil {
 		return err
 	}
+
+	if u.ID == "" {
+		return fmt.Errorf("login or password is wrong")
+	}
+	fmt.Println(u)
 
 	if !u.IsActive {
 		return errors.New("pls active your account")

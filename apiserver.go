@@ -1,6 +1,7 @@
 package server
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -23,24 +24,24 @@ type HttpError struct {
 }
 
 type Server struct {
-	config     *config.Config
-	router     *echo.Echo
-	logger     *logrus.Logger
-	store      store.Store
-	cc         *mycrypto.CryptoContext
-	PortsStore map[string]bool //true - занят // false - свободен
-	LinkStore  map[string]tokens.LinkToken
+	config         *config.Config
+	router         *echo.Echo
+	logger         *logrus.Logger
+	store          store.Store
+	cc             *mycrypto.CryptoContext
+	LinkStore      map[string]tokens.LinkToken
+	UserTokenStore map[string]tokens.UserToken
 }
 
 func NewServer(store store.Store, config *config.Config) (*Server, error) {
 	var err error
 	s := &Server{
-		router:    echo.New(),
-		logger:    logrus.New(),
-		store:     store,
-		config:    config,
-		LinkStore: make(map[string]tokens.LinkToken),
-		// PortsStore: make(map[string]bool),
+		router:         echo.New(),
+		logger:         logrus.New(),
+		store:          store,
+		config:         config,
+		LinkStore:      make(map[string]tokens.LinkToken),
+		UserTokenStore: make(map[string]tokens.UserToken),
 	}
 
 	s.cc, err = mycrypto.NewCryptoContext()
@@ -57,9 +58,25 @@ func (s *Server) configureRouter() {
 	s.router.POST("/reg", s.CreateUserController)
 	s.router.POST("/login", s.LoginController)
 	s.router.GET("/user/verify", s.VerifyUserController)
+	s.router.GET("/public", s.GetPublicInfoController)
 }
 
 func (s *Server) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if r.Method != "GET" {
+		encData, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		data, err := s.cc.Decrypt(encData)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		r.Body = ioutil.NopCloser(bytes.NewReader(data))
+	}
 
 	s.router.ServeHTTP(w, r)
 }

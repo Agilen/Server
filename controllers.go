@@ -22,8 +22,9 @@ type (
 	}
 
 	LoginRequest struct {
-		Login    string
-		Password string
+		Login      string
+		Password   string
+		PublicInfo []byte
 	}
 
 	LoginResponce struct {
@@ -38,11 +39,14 @@ type (
 	FindUserResponce struct {
 		Users []model.User
 	}
-
-	VerifyRequrst struct {
-		id string
-	}
 )
+
+func (s *Server) GetPublicInfoController(c echo.Context) error {
+	fmt.Println(s.cc.PublicInfo)
+	c.Response().Write(s.cc.PublicInfo[:])
+	c.Response().Status = 200
+	return nil
+}
 
 func (s *Server) CreateUserController(c echo.Context) error {
 	req := new(RegistrationRequest)
@@ -75,13 +79,11 @@ func (s *Server) CreateUserController(c echo.Context) error {
 }
 
 func (s *Server) VerifyUserController(c echo.Context) error {
-
-	fmt.Println("hello")
 	id := c.QueryParam("id")
 	if id == "" {
 		return s.HttpErrorHandler(c, fmt.Errorf("id is nil"), http.StatusBadRequest)
 	}
-	fmt.Println(id)
+
 	if token, ok := s.LinkStore[id]; ok {
 
 		delete(s.LinkStore, id)
@@ -111,6 +113,7 @@ func (s *Server) LoginController(c echo.Context) error {
 		Login:    req.Login,
 		Password: req.Password,
 	}
+
 	if err := s.store.User().CheckUser(u); err != nil {
 		return s.HttpErrorHandler(c, err, http.StatusBadRequest)
 	}
